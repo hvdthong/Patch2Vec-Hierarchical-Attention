@@ -8,6 +8,8 @@ from preprocessing_linux_bfp.reformating import reformat_file, reformat_hunk
 import numpy as np
 import math
 import os
+from arguments import read_args
+from padding import padding_commit
 
 
 def load_file(path_file):
@@ -207,7 +209,7 @@ def mini_batches_topwords(X_added_code, X_removed_code, Y, mini_batch_size=64, s
 
     # Step 2: Partition (X, Y). Minus the end case.
     num_complete_minibatches = math.floor(
-        m / float(mini_batch_size))  # number of mini batches of size mini_batch_size in your partitionning
+        m / float(mini_batch_size))  # number of mini batches of size mini_batch_size in your partitioning
     num_complete_minibatches = int(num_complete_minibatches)
     for k in range(0, num_complete_minibatches):
         mini_batch_X_added = shuffled_X_added[k * mini_batch_size: k * mini_batch_size + mini_batch_size, :, :, :]
@@ -233,9 +235,16 @@ def mini_batches_topwords(X_added_code, X_removed_code, Y, mini_batch_size=64, s
 
 
 if __name__ == "__main__":
-    path_data = "./data/linux/newres_funcalls_words_jul28.out"
+    # path_data = "./data/linux/newres_funcalls_words_jul28.out"
     path_data = "./data/linux/newres_funcalls_jul28.out"
     commits_ = extract_commit(path_file=path_data)
     nfile, nhunk, nloc, nleng = 1, 8, 10, 120
-    new_commits = reformat_commit_code(commits=commits_, num_file=nfile, num_hunk=nhunk, num_loc=nloc, num_leng=nleng)
-    print(len(new_commits))
+    commits = reformat_commit_code(commits=commits_, num_file=nfile, num_hunk=nhunk, num_loc=nloc, num_leng=nleng)
+    print('Number of commits:', len(commits))
+
+    input_option = read_args().parse_args()
+    input_help = read_args().print_help()
+    pad_msg, pad_added_code, pad_removed_code, labels, dict_msg, dict_code = padding_commit(commits=commits,
+                                                                                            params=input_option)
+    print('Dictionary of commit message has size: %i' % (len(dict_msg)))
+    print('Dictionary of commit code has size: %i' % (len(dict_code)))
