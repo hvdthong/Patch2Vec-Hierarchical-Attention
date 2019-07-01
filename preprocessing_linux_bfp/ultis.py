@@ -10,6 +10,7 @@ import math
 import os
 from arguments import read_args
 from padding import padding_commit
+import pickle
 
 
 def load_file(path_file):
@@ -240,11 +241,13 @@ if __name__ == "__main__":
     commits_ = extract_commit(path_file=path_data)
     nfile, nhunk, nloc, nleng = 1, 8, 10, 120
     commits = reformat_commit_code(commits=commits_, num_file=nfile, num_hunk=nhunk, num_loc=nloc, num_leng=nleng)
-    print('Number of commits:', len(commits))
 
     input_option = read_args().parse_args()
     input_help = read_args().print_help()
     pad_msg, pad_added_code, pad_removed_code, labels, dict_msg, dict_code = padding_commit(commits=commits,
                                                                                             params=input_option)
+    data = (pad_msg, pad_added_code, pad_removed_code, labels, dict_msg, dict_code)
+    print('Number of commits:', len(commits))
     print('Dictionary of commit message has size: %i' % (len(dict_msg)))
     print('Dictionary of commit code has size: %i' % (len(dict_code)))
+    pickle.dump(data, open('../data/linux_bfp.p', 'wb'))
