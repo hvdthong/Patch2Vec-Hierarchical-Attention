@@ -250,4 +250,4 @@ if __name__ == "__main__":
     print('Number of commits:', len(commits))
     print('Dictionary of commit message has size: %i' % (len(dict_msg)))
     print('Dictionary of commit code has size: %i' % (len(dict_code)))
-    pickle.dump(data, open('../data/linux_bfp.p', 'wb'))
+    pickle.dump(data, open('./data/linux_bfp.pickle', 'wb'))
