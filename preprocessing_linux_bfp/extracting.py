@@ -31,7 +31,7 @@ def extract_hunk_code(code, sign):
                 exit()
             line = l.strip().split(":")[3].strip()
             prop_line = l.strip().split(":")[2].strip()
-            new_line = prop_line + "," + line
+            new_line = prop_line + ":" + line
             if hunk_idx not in dict_hunk.keys():
                 dict_hunk[hunk_idx] = [new_line]
             else:
