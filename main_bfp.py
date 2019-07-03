@@ -13,5 +13,8 @@ if __name__ == '__main__':
 
     with open('./data/linux_bfp.pickle', 'rb') as input:
         data = pickle.load(input)
-    print(len(data))
+    pad_msg, pad_added_code, pad_removed_code, labels, dict_msg, dict_code = data
     ##########################################################################################################
+
+    for key in dict_code:
+        print(key)
