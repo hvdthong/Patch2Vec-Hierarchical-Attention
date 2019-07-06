@@ -1,4 +1,5 @@
 import pickle
+from parameters import read_args
 
 if __name__ == '__main__':
     # loading data
@@ -15,6 +16,11 @@ if __name__ == '__main__':
         data = pickle.load(input)
     pad_msg, pad_added_code, pad_removed_code, labels, dict_msg, dict_code = data
     ##########################################################################################################
+    print(pad_msg.shape, pad_added_code.shape, pad_removed_code.shape, labels.shape)
+    print(len(dict_msg), len(dict_code))
 
-    for key in dict_code:
-        print(key)
+    input_option = read_args().parse_args()
+    input_help = read_args().print_help()
+
+
+

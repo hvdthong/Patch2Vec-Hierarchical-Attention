@@ -3,6 +3,7 @@
 #  * The PatchNet source code can be obtained at
 #  * https://github.com/hvdthong/PatchNetTool
 
+
 def reformat_file(commits, num_file):
     for c in commits:
         if len(c['code']) > num_file:
