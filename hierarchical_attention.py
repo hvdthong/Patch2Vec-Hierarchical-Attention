@@ -23,17 +23,17 @@ def attention_mul(rnn_outputs, att_weights):
 
 # The word RNN model for generating a sentence vector
 class WordRNN(nn.Module):
-    def __init__(self, vocab_size, embed_size, batch_size, hid_size):
+    def __init__(self, vocab_size, embed_size, batch_size, hidden_size):
         super(WordRNN, self).__init__()
         self.batch_size = batch_size
         self.embed_size = embed_size
-        self.hid_size = hid_size
+        self.hidden_size = hidden_size
         # Word Encoder
         self.embed = nn.Embedding(vocab_size, embed_size)
-        self.wordRNN = nn.GRU(embed_size, hid_size, bidirectional=True)
+        self.wordRNN = nn.GRU(embed_size, hidden_size, bidirectional=True)
         # Word Attention
-        self.wordattn = nn.Linear(2 * hid_size, 2 * hid_size)
-        self.attn_combine = nn.Linear(2 * hid_size, 2 * hid_size, bias=False)
+        self.wordattn = nn.Linear(2 * hidden_size, 2 * hidden_size)
+        self.attn_combine = nn.Linear(2 * hidden_size, 2 * hidden_size, bias=False)
 
     def forward(self, inp, hid_state):
         emb_out = self.embed(inp)
@@ -49,18 +49,18 @@ class WordRNN(nn.Module):
 
 # The sentence RNN model for generating a hunk vector
 class SentRNN(nn.Module):
-    def __init__(self, sent_size, hid_size):
+    def __init__(self, sent_size, hidden_size):
         super(SentRNN, self).__init__()
         # Sentence Encoder
         self.sent_size = sent_size
-        self.sentRNN = nn.GRU(sent_size, hid_size, bidirectional=True)
+        self.sentRNN = nn.GRU(sent_size, hidden_size, bidirectional=True)
 
         # Sentence Attention
-        self.sentattn = nn.Linear(2 * hid_size, 2 * hid_size)
-        self.attn_combine = nn.Linear(2 * hid_size, 2 * hid_size, bias=False)
+        self.sentattn = nn.Linear(2 * hidden_size, 2 * hidden_size)
+        self.attn_combine = nn.Linear(2 * hidden_size, 2 * hidden_size, bias=False)
 
     def forward(self, inp, hid_state):
-        out_state, hid_state = self.sentRNN(self.sent_size, hid_state)
+        out_state, hid_state = self.sentRNN(inp, hid_state)
 
         sent_annotation = self.sentattn(out_state)
         attn = F.softmax(self.attn_combine(sent_annotation), dim=1)
@@ -69,50 +69,83 @@ class SentRNN(nn.Module):
         return sent, hid_state
 
 
+# The hunk RNN model for generating the vector representation for the instance
+class HunkRNN(nn.Module):
+    def __init__(self, sent_size, hidden_size):
+        super(HunkRNN, self).__init__()
+        # Sentence Encoder
+        self.sent_size = sent_size
+        self.hunkRNN = nn.GRU(sent_size, hidden_size, bidirectional=True)
+
+        # Sentence Attention
+        self.hunkattn = nn.Linear(2 * hidden_size, 2 * hidden_size)
+        self.attn_combine = nn.Linear(2 * hidden_size, 2 * hidden_size, bias=False)
+
+    def forward(self, inp, hid_state):
+        out_state, hid_state = self.hunkRNN(inp, hid_state)
+
+        hunk_annotation = self.hunkattn(out_state)
+        attn = F.softmax(self.attn_combine(hunk_annotation), dim=1)
+
+        hunk = attention_mul(out_state, attn)
+        return hunk, hid_state
+
+
 # The HAN model
 class HierachicalRNN(nn.Module):
-    def __init__(self, vocab_size, embed_size, batch_size, hid_size, c):
+    def __init__(self, args):
         super(HierachicalRNN, self).__init__()
-        self.batch_size = batch_size
-        self.embed_size = embed_size
-        self.hid_size = hid_size
-        self.cls = c
+        self.vocab_size = args.vocab_code
+        self.batch_size = args.batch_size
+        self.embed_size = args.embed_size
+        self.hidden_size = args.hidden_size
+        self.cls = args.class_num
 
         # Word Encoder
-        self.wordRNN = WordRNN(vocab_size, embed_size, batch_size, hid_size)
+        self.wordRNN = WordRNN(self.vocab_size, self.embed_size, self.batch_size, self.hidden_size)
         # Sentence Encoder
-        self.sentRNN = SentRNN(embed_size, hid_size)
-
+        self.sentRNN = SentRNN(self.embed_size, self.hidden_size)
         # Hunk Encoder
-        self.sentRNN = nn.GRU(embed_size, hid_size, bidirectional=True)
-        # Hunk Attention
-        self.hunkattn = nn.Linear(2 * hid_size, 2 * hid_size)
-        self.attn_combine = nn.Linear(2 * hid_size, 2 * hid_size, bias=False)
-        self.doc_linear = nn.Linear(2 * hid_size, c)
+        self.hunkRNN = HunkRNN(self.embed_size, self.hidden_size)
 
-    def forward(self, inp, hid_state_sent, hid_state_word):
-        s = None
-        # Generating sentence vector through WordRNN
-        for i in range(len(inp[0])):
-            r = None
-            for j in range(len(inp)):
-                if r is None:
-                    r = [inp[j][i]]
+        # Hidden layers before putting to the output layer
+        self.doc_linear = nn.Linear(2 * self.hidden_size, self.cls)
+
+    def forward_code(self, x, hid_state):
+        hid_state_hunk, hid_state_sent, hid_state_word = hid_state
+        n_batch, n_hunk, n_line = x.shape[0], x.shape[1], x.shape[2]
+        # i: hunk; j: line; k: batch
+        hunks = list()
+        for i in range(n_hunk):
+            sents = None
+            for j in range(n_line):
+                words = list()
+                for k in range(n_batch):
+                    words.append(x[k][i][j])
+                words = np.array(words)
+                sent, state_word = self.wordRNN(torch.cuda.LongTensor(words).view(-1, self.batch_size), hid_state_word)
+                if sents is None:
+                    sents = sent
                 else:
-                    r.append(inp[j][i])
-            r1 = np.asarray([sub_list + [0] * (self.max_seq_len - len(sub_list)) for sub_list in r])
-            _s, state_word = self.wordRNN(torch.cuda.LongTensor(r1).view(-1, self.batch_size), hid_state_word)
-            if s is None:
-                s = _s
+                    sents = torch.cat((sents, sent), 0)
+            hunk, state_sent = self.sentRNN(sents, hid_state_sent)
+            if hunks is None:
+                hunks = hunk
             else:
-                s = torch.cat((s, _s), 0)
+                hunks = torch.cat((hunks, hunk), 0)
+        out_hunk, state_hunk = self.hunkRNN(hunks, hid_state_hunk)
+        return out_hunk
 
-                out_state, hid_state = self.sentRNN(s, hid_state_sent)
-        sent_annotation = self.sentattn(out_state)
-        attn = F.softmax(self.attn_combine(sent_annotation), dim=1)
+    def forward(self, added_code, removed_code, hid_state_hunk, hid_state_sent, hid_state_word):
+        hid_state = (hid_state_hunk, hid_state_sent, hid_state_word)
+        x_added_code = self.forward_code(x=added_code, hid_state=hid_state)
+        return None
 
-        doc = attention_mul(out_state, attn)
-        d = self.doc_linear(doc)
-        cls = F.log_softmax(d.view(-1, self.cls), dim=1)
-        return cls, hid_state
+    def init_hidden_hunk(self):
+        return Variable(torch.zeros(2, self.batch_size, self.hidden_size)).cuda()
 
+    def init_hidden_sent(self):
+        return Variable(torch.zeros(2, self.batch_size, self.hidden_size)).cuda()
+
+    def init_hidden_word(self):
+        return Variable(torch.zeros(2, self.batch_size, self.hidden_size)).cuda()
