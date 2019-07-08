@@ -6,6 +6,7 @@ import torch
 import os
 from hierarchical_attention import HierachicalRNN
 import torch.nn as nn
+import datetime
 
 
 def save(model, save_dir, save_prefix, epochs):
@@ -62,6 +63,7 @@ def train_model(data, params):
     params.cuda = (not params.no_cuda) and torch.cuda.is_available()
     del params.no_cuda
 
+    params.save_dir = os.path.join(params.save_dir, datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S'))
     params.vocab_code = len(dict_code)
     if len(labels.shape) == 1:
         params.class_num = 1

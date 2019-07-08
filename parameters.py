@@ -10,13 +10,13 @@ def read_args():
     parser.add_argument('--predict', action='store_true', help='predicting testing data')
 
     # Number of parameters for Attention model
-    parser.add_argument('-embed_size', type=int, default=32, help='the dimension of embedding vector')
-    parser.add_argument('-hidden_size', type=int, default=16, help='the number of nodes in hidden layers')
+    parser.add_argument('-embed_size', type=int, default=128, help='the dimension of embedding vector')
+    parser.add_argument('-hidden_size', type=int, default=64, help='the number of nodes in hidden layers')
     parser.add_argument('-dropout_keep_prob', type=float, default=0.5, help='dropout for training PatchNet')
     parser.add_argument('-l2_reg_lambda', type=float, default=1e-5, help='regularization rate')
     parser.add_argument('-learning_rate', type=float, default=1e-4, help='learning rate')
     parser.add_argument('-batch_size', type=int, default=64, help='batch size')
-    parser.add_argument('-num_epochs', type=int, default=150, help='the number of epochs')
+    parser.add_argument('-num_epochs', type=int, default=100, help='the number of epochs')
     parser.add_argument('-log_interval', type=int, default=10,
                         help='how many steps to wait before logging training status [default: 1]')
     parser.add_argument('-test-interval', type=int, default=10,

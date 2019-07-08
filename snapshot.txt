@@ -1,0 +1,2 @@
+embed_size:32   hidden_size:16
+embed_size:128   hidden_size:64
