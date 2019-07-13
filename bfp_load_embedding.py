@@ -1,69 +1,20 @@
-import pickle
 from parameters import read_args
-import numpy as np
-from utilities import mini_batches
+import pickle
+from bfp_train import convert_msg_to_label
+from bfp_train import mini_batches
 import torch
-import os
 from hierarchical_attention import HierachicalRNN
-import torch.nn as nn
-import datetime
+import numpy as np
+import os
 
 
-def save(model, save_dir, save_prefix, epochs):
-    if not os.path.isdir(save_dir):
-        os.makedirs(save_dir)
-    save_prefix = os.path.join(save_dir, save_prefix)
-    save_path = '{}_{}.pt'.format(save_prefix, epochs)
-    torch.save(model.state_dict(), save_path)
-
-
-def convert_msg_to_label(pad_msg, dict_msg):
-    nrows, ncols = pad_msg.shape
-    labels = list()
-    for i in range(nrows):
-        column = list(set(list(pad_msg[i, :])))
-        label = np.zeros(len(dict_msg))
-        for c in column:
-            label[c] = 1
-        labels.append(label)
-    return np.array(labels)
-
-
-def running_train(batches, model, params):
-    optimizer = torch.optim.Adam(model.parameters(), lr=params.l2_reg_lambda)
-    steps, num_epoch = 0, 1
-    for epoch in range(1, params.num_epochs + 1):
-        for batch in batches:
-            # reset the hidden state of hierarchical attention model
-            state_word = model.init_hidden_word()
-            state_sent = model.init_hidden_sent()
-            state_hunk = model.init_hidden_hunk()
-
-            pad_added_code, pad_removed_code, labels = batch
-            labels = torch.cuda.FloatTensor(labels)
-            optimizer.zero_grad()
-            predict = model.forward(pad_added_code, pad_removed_code, state_hunk, state_sent, state_word)
-            loss = nn.BCELoss()
-            loss = loss(predict, labels)
-            loss.backward()
-            optimizer.step()
-
-            steps += 1
-            if steps % params.log_interval == 0:
-                print('\rEpoch: {} step: {} - loss: {:.6f}'.format(num_epoch, steps, loss.item()))
-
-        save(model, params.save_dir, 'epoch', num_epoch)
-        num_epoch += 1
-
-
-def train_model(data, params):
+def load_model(data, params):
     pad_added_code, pad_removed_code, labels, dict_msg, dict_code = data
     batches = mini_batches(X_added_code=pad_added_code, X_removed_code=pad_removed_code, Y=pad_msg_labels,
                            mini_batch_size=input_option.batch_size)
     params.cuda = (not params.no_cuda) and torch.cuda.is_available()
     del params.no_cuda
 
-    params.save_dir = os.path.join(params.save_dir, datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S'))
     params.vocab_code = len(dict_code)
     if len(labels.shape) == 1:
         params.class_num = 1
@@ -75,7 +26,39 @@ def train_model(data, params):
     hierarchical_attention = HierachicalRNN(args=params)
     if torch.cuda.is_available():
         model = hierarchical_attention.cuda()
-    running_train(batches=batches, model=model, params=params)
+    return batches, model
+
+
+def load_embedding(path, batches, model, params, nepoch):
+    model.load_state_dict(torch.load(path))
+    embedding_vectors, cnt = list(), 0
+    for batch in batches:
+        # reset the hidden state of hierarchical attention model
+        state_word = model.init_hidden_word()
+        state_sent = model.init_hidden_sent()
+        state_hunk = model.init_hidden_hunk()
+
+        pad_added_code, pad_removed_code, labels = batch
+        commits_vector = model.forward_commit_embeds(pad_added_code, pad_removed_code, state_hunk, state_sent,
+                                                     state_word)
+
+        if torch.cuda.is_available():
+            commits_vector = commits_vector.cpu().detach().numpy()
+        else:
+            commits_vector = commits_vector.detach().numpy()
+
+        if cnt == 0:
+            embedding_vectors = commits_vector
+        else:
+            embedding_vectors = np.concatenate((embedding_vectors, commits_vector), axis=0)
+        print('Batch numbers:', cnt)
+        cnt += 1
+    path_save = './embedding/' + params.datetime + '/'
+    save_folder = os.path.dirname(path_save)
+    if not os.path.exists(save_folder):
+        os.makedirs(save_folder)
+    print(embedding_vectors.shape)
+    np.savetxt(path_save + 'epoch_' + str(nepoch) + '.txt', embedding_vectors)
 
 
 if __name__ == '__main__':
@@ -105,8 +88,21 @@ if __name__ == '__main__':
     input_option = read_args().parse_args()
     input_help = read_args().print_help()
 
-    input_option.embed_size = 64
-    input_option.hidden_size = 32
+    # input_option.datetime = '2019-07-08_23-11-15'
+    # input_option.embed_size = 32
+    # input_option.hidden_size = 16
+    # input_option.start_epoch = 1
+    # input_option.end_epoch = 50
+
+    input_option.datetime = '2019-07-08_23-13-28'
+    input_option.embed_size = 128
+    input_option.hidden_size = 64
+    input_option.start_epoch = 1
+    input_option.end_epoch = 50
 
     data = (pad_added_code, pad_removed_code, pad_msg_labels, dict_msg, dict_code)
-    train_model(data=data, params=input_option)
+    batches, model = load_model(data=data, params=input_option)
+    for epoch in range(input_option.start_epoch, input_option.end_epoch + 1):
+        path_model = './snapshot/' + input_option.datetime + '/epoch_' + str(epoch) + '.pt'
+        print(path_model)
+        load_embedding(path=path_model, batches=batches, model=model, params=input_option, nepoch=epoch)
