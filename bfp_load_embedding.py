@@ -32,33 +32,35 @@ def load_model(data, params):
 def load_embedding(path, batches, model, params, nepoch):
     model.load_state_dict(torch.load(path))
     embedding_vectors, cnt = list(), 0
-    for batch in batches:
-        # reset the hidden state of hierarchical attention model
-        state_word = model.init_hidden_word()
-        state_sent = model.init_hidden_sent()
-        state_hunk = model.init_hidden_hunk()
+    with torch.no_grad():
+        model.eval()
+        for batch in batches:
+            # reset the hidden state of hierarchical attention model
+            state_word = model.init_hidden_word()
+            state_sent = model.init_hidden_sent()
+            state_hunk = model.init_hidden_hunk()
 
-        pad_added_code, pad_removed_code, labels = batch
-        commits_vector = model.forward_commit_embeds(pad_added_code, pad_removed_code, state_hunk, state_sent,
-                                                     state_word)
+            pad_added_code, pad_removed_code, labels = batch
+            commits_vector = model.forward_commit_embeds(pad_added_code, pad_removed_code, state_hunk, state_sent,
+                                                         state_word)
 
-        if torch.cuda.is_available():
-            commits_vector = commits_vector.cpu().detach().numpy()
-        else:
-            commits_vector = commits_vector.detach().numpy()
+            if torch.cuda.is_available():
+                commits_vector = commits_vector.cpu().detach().numpy()
+            else:
+                commits_vector = commits_vector.detach().numpy()
 
-        if cnt == 0:
-            embedding_vectors = commits_vector
-        else:
-            embedding_vectors = np.concatenate((embedding_vectors, commits_vector), axis=0)
-        print('Batch numbers:', cnt)
-        cnt += 1
-    path_save = './embedding/' + params.datetime + '/'
-    save_folder = os.path.dirname(path_save)
-    if not os.path.exists(save_folder):
-        os.makedirs(save_folder)
-    print(embedding_vectors.shape)
-    np.savetxt(path_save + 'epoch_' + str(nepoch) + '.txt', embedding_vectors)
+            if cnt == 0:
+                embedding_vectors = commits_vector
+            else:
+                embedding_vectors = np.concatenate((embedding_vectors, commits_vector), axis=0)
+            print('Batch numbers:', cnt)
+            cnt += 1
+        path_save = './embedding/' + params.datetime + '/'
+        save_folder = os.path.dirname(path_save)
+        if not os.path.exists(save_folder):
+            os.makedirs(save_folder)
+        print(embedding_vectors.shape)
+        np.savetxt(path_save + 'epoch_' + str(nepoch) + '.txt', embedding_vectors)
 
 
 if __name__ == '__main__':
@@ -94,11 +96,17 @@ if __name__ == '__main__':
     # input_option.start_epoch = 1
     # input_option.end_epoch = 50
 
-    input_option.datetime = '2019-07-08_23-13-28'
-    input_option.embed_size = 128
-    input_option.hidden_size = 64
+    # input_option.datetime = '2019-07-08_23-13-28'
+    # input_option.embed_size = 128
+    # input_option.hidden_size = 64
+    # input_option.start_epoch = 1
+    # input_option.end_epoch = 50
+
+    input_option.datetime = '2019-07-12_21-00-10'
+    input_option.embed_size = 64
+    input_option.hidden_size = 32
     input_option.start_epoch = 1
-    input_option.end_epoch = 50
+    input_option.end_epoch = 20
 
     data = (pad_added_code, pad_removed_code, pad_msg_labels, dict_msg, dict_code)
     batches, model = load_model(data=data, params=input_option)

@@ -3,7 +3,6 @@ import torch.nn.functional as F
 import torch.nn as nn
 import numpy as np
 from torch.autograd import Variable
-import pickle
 
 
 # Make the the multiple attention with word vectors.
@@ -173,7 +172,7 @@ class HierachicalRNN(nn.Module):
         out = self.sigmoid(out).squeeze(1)
         return out
 
-    def forward_commit_embeds(self, added_code, removed_code, hid_state_hunk, hid_state_sent, hid_state_word):
+    def forward_commit_embeds_diff(self, added_code, removed_code, hid_state_hunk, hid_state_sent, hid_state_word):
         hid_state = (hid_state_hunk, hid_state_sent, hid_state_word)
 
         x_added_code = self.forward_code(x=added_code, hid_state=hid_state)
@@ -190,6 +189,18 @@ class HierachicalRNN(nn.Module):
         ntn = self.neural_network_tensor_layer(added_code=x_added_code, removed_code=x_removed_code)
 
         x_diff_code = torch.cat((subtract, multiple, euc, nn, ntn), dim=1)
+        return x_diff_code
+
+    def forward_commit_embeds(self, added_code, removed_code, hid_state_hunk, hid_state_sent, hid_state_word):
+        hid_state = (hid_state_hunk, hid_state_sent, hid_state_word)
+
+        x_added_code = self.forward_code(x=added_code, hid_state=hid_state)
+        x_removed_code = self.forward_code(x=removed_code, hid_state=hid_state)
+
+        x_added_code = x_added_code.view(self.batch_size, self.embed_size)
+        x_removed_code = x_removed_code.view(self.batch_size, self.embed_size)
+
+        x_diff_code = torch.cat((x_added_code, x_removed_code), dim=1)
         return x_diff_code
 
     def subtraction(self, added_code, removed_code):
