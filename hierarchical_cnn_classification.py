@@ -72,10 +72,11 @@ class PatchNetExtented(nn.Module):
         return x
 
     def forward_code_fast_ver1(self, x):
-        n_batch, n_hunk, n_line = x.shape[0], x.shape[1], x.shape[2]
         x = torch.mean(x, dim=3)  # line features
         x = torch.mean(x, dim=2)  # hunk features
 
+        # apply cnn 2d for each line in a commit code
+        x = self.forward_msg(x=x, convs=self.convs_code)
         return x
 
     def forward(self, ftr, msg, added_code, removed_code):
@@ -84,9 +85,11 @@ class PatchNetExtented(nn.Module):
 
         x_added_code = self.embed_code(added_code)
         x_added_code = self.forward_code_fast(x=x_added_code)
+        # x_added_code = self.forward_code_fast_ver1(x=x_added_code)
 
         x_removed_code = self.embed_code(removed_code)
         x_removed_code = self.forward_code_fast(x=x_removed_code)
+        # x_removed_code = self.forward_code_fast_ver1(x=x_removed_code)
 
         x_ftr = ftr.float()
 

@@ -7,4 +7,7 @@
 2019-07-21_20-56-53 embed_size:128  filter_sizes:1,2,3  num_filters:64  hidden_size:128
 
 --PatchNet-Classification
-2019-07-22_16-57-31 datetime:2019-07-08_23-13-28    path:epoch_10.txt
+2019-07-22_16-57-31 datetime:2019-07-08_23-13-28    path:epoch_10.txt   patchnet_fast
+2019-07-23_09-07-43 datetime:2019-07-08_23-13-28    path:epoch_10.txt   patchnet_fast_ver1
+
+2019-07-23_21-26-23 datetime:2019-07-08_23-13-28    path:epoch_10.txt   patchnet_fast  # continue
