@@ -2,6 +2,18 @@ import math
 import numpy as np
 
 
+def load_file(path_file):
+    lines = list(open(path_file, "r").readlines())
+    lines = [l.strip() for l in lines]
+    return lines
+
+
+def convert_to_binary(y_pred):
+    y_pred = list(y_pred)
+    y_pred = [1 if value >= 0.5 else 0 for value in y_pred]
+    return np.array(y_pred)
+
+
 def mini_batches(X_added_code, X_removed_code, Y, mini_batch_size=64, seed=0):
     m = Y.shape[0]  # number of training examples
     mini_batches = []

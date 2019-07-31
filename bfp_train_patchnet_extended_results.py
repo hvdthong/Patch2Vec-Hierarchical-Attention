@@ -97,9 +97,13 @@ if __name__ == '__main__':
     data = (embedding_ftr, pad_msg, pad_added_code, pad_removed_code, labels, dict_msg, dict_code)
     input_option.extended_ftr = embedding_ftr.shape[1]
 
-    input_option.path_model = '2019-07-22_16-57-31'
+    # input_option.path_model = '2019-07-22_16-57-31'
+    # input_option.start_model = 1
+    # input_option.end_model = 100
+
+    input_option.path_model = '2019-07-23_21-26-23'
     input_option.start_model = 1
-    input_option.end_model = 100
+    input_option.end_model = 50
 
     batches, model = load_model(data=data, params=input_option)
     for epoch in range(input_option.start_model, input_option.end_model + 1):
