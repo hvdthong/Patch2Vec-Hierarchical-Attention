@@ -108,3 +108,9 @@ def read_args_cnn():
     parser.add_argument('-end_epoch', type=int, default=None, help='ending epoch of loading model')
     parser.add_argument('-step', type=int, default=None, help='jumping step of the epoch')
     return parser
+
+
+def print_params(params):
+    options = vars(params)
+    for key in sorted(options.keys()):
+        print(key, ':', options[key])

@@ -98,7 +98,6 @@ if __name__ == '__main__':
 
     dict_msg, dict_code = dictionary_commit(data=messages, type_data='msg'), dictionary_commit(data=codes,
                                                                                                type_data='code')
-    print('Dictionary message: %i -- Dictionary code: %i' % (len(dict_msg), len(dict_code)))
     pad_msg = padding_message(data=messages, max_length=256)
     added_code, removed_code = codes
     pad_added_code = padding_commit_code(data=added_code, max_file=3, max_line=10, max_length=256)
@@ -107,7 +106,8 @@ if __name__ == '__main__':
     pad_msg = mapping_dict_msg(pad_msg=pad_msg, dict_msg=dict_msg)
     pad_added_code = mapping_dict_code(pad_code=pad_added_code, dict_code=dict_code)
     pad_removed_code = mapping_dict_code(pad_code=pad_removed_code, dict_code=dict_code)
-    data = (pad_msg, pad_added_code, pad_removed_code, labels, ids)
+    data = (pad_msg, pad_added_code, pad_removed_code, labels, dict_msg, dict_code, ids)
+    print('Dictionary message: %i -- Dictionary code: %i' % (len(dict_msg), len(dict_code)))
     print('Shape of commit message:', pad_msg.shape)
     print('Shape of added code:', pad_added_code.shape)
     print('Shape of removed code:', pad_removed_code.shape)

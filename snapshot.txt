@@ -12,3 +12,9 @@
 2019-07-23_09-07-43 datetime:2019-07-08_23-13-28    path:epoch_10.txt   patchnet_fast_ver1
 
 2019-07-23_21-26-23 datetime:2019-07-08_23-13-28    path:epoch_10.txt   patchnet_fast  # continue
+
+------JIT------
+--Attention
+2019-08-03_14-40-22 embed_size:64   hidden_size:32  --OPENSTACK
+2019-08-03_14-45-06 embed_size:64   hidden_size:32  --QT
+
