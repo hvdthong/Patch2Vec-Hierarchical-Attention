@@ -4,8 +4,23 @@ import numpy as np
 from sklearn.model_selection import KFold
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import precision_score
-from sklearn.svm import SVC
+from sklearn.svm import SVC, LinearSVC
 from sklearn.naive_bayes import GaussianNB
+from sklearn.tree import DecisionTreeClassifier
+
+
+def evaluation_metrics(path, labels):
+    pred_score = load_file(path_file=path)
+    pred_score = np.array([float(score) for score in pred_score])
+    labels = labels[:pred_score.shape[0]]
+
+    acc = accuracy_score(y_true=labels, y_pred=convert_to_binary(pred_score))
+    prc = precision_score(y_true=labels, y_pred=convert_to_binary(pred_score))
+    rc = recall_score(y_true=labels, y_pred=convert_to_binary(pred_score))
+    f1 = f1_score(y_true=labels, y_pred=convert_to_binary(pred_score))
+    auc = roc_auc_score(y_true=labels, y_score=pred_score)
+
+    print('Accuracy: %f -- Precision: %f -- Recall: %f -- F1: %f -- AUC: %f' % (acc, prc, rc, f1, auc))
 
 
 def bfp_clf_results(path, labels=None, algorithm=None, kfold=5):
@@ -17,10 +32,14 @@ def bfp_clf_results(path, labels=None, algorithm=None, kfold=5):
     if algorithm == 'lr':
         clf = LogisticRegression(solver='lbfgs', max_iter=1000).fit(X=embedding, y=labels)
     elif algorithm == 'svm':
-        clf = SVC(gamma='auto').fit(X=embedding, y=labels)
+        clf = SVC(gamma='auto', probability=True, kernel='linear', max_iter=100).fit(X=embedding, y=labels)
     elif algorithm == 'nb':
         clf = GaussianNB().fit(X=embedding, y=labels)
+    elif algorithm == 'dt':
+        clf = DecisionTreeClassifier(random_state=0).fit(X=embedding, y=labels)
 
+    print('Algorithm results:', algorithm)
+    # y_pred_score = clf.predict_proba(embedding)[:, 1]
     y_pred = clf.predict(embedding)
     print(precision_score(y_true=labels, y_pred=y_pred))
 
@@ -60,9 +79,10 @@ if __name__ == '__main__':
     input_option.start_epoch = 1
     input_option.end_epoch = 5
 
-    algorithm, kfold = 'lr', 5
+    # algorithm, kfold = 'lr', 5
     # algorithm, kfold = 'svm', 5
     # algorithm, kfold = 'nb', 5
+    algorithm, kfold = 'dt', 5
 
     for epoch in range(input_option.start_epoch, input_option.end_epoch + 1):
         path_model = './embedding/' + input_option.datetime + '/epoch_' + str(epoch) + '.txt'

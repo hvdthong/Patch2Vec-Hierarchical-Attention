@@ -1,12 +1,13 @@
 import pickle
 from parameters import read_args_cnn
 import numpy as np
-from utilities import mini_batches_extended
+from utilities import mini_batches_extended_update
 import torch
 import os
 import datetime
-from hierarchical_cnn_classification import PatchNetExtented
+from hierarchical_cnn_jit_classification import DeepJITExtented
 import torch.nn as nn
+from parameters import print_params
 
 
 def save(model, save_dir, save_prefix, epochs):
@@ -37,31 +38,32 @@ def running_train(batches, model, params):
             steps += 1
             if steps % params.log_interval == 0:
                 print('\rEpoch: {} step: {} - loss: {:.6f}'.format(num_epoch, steps, loss.item()))
-
-            # if steps % params.test_interval == 0:
-            #     if torch.cuda.is_available():
-            #         predict, labels = predict.cpu().detach().numpy(), labels.cpu().detach().numpy()
-            #     else:
-            #         predict, labels = predict.detach().numpy(), labels.detach().numpy()
-            #     predict = [1 if p >= 0.5 else 0 for p in predict]
-            #     accuracy = accuracy_score(y_true=labels, y_pred=predict)
-            #     print(
-            #         '\rEpoch: {} Step: {} - loss: {:.6f}  acc: {:.4f}'.format(num_epoch, steps, loss.item(), accuracy))
-
         save(model, params.save_dir, 'epoch', num_epoch)
         num_epoch += 1
 
 
 def train_model(data, params):
     pad_extended_ftr, pad_msg, pad_added_code, pad_removed_code, labels, dict_msg, dict_code = data
-    batches = mini_batches_extended(X_ftr=pad_extended_ftr, X_msg=pad_msg, X_added_code=pad_added_code,
-                                    X_removed_code=pad_removed_code, Y=labels, mini_batch_size=input_option.batch_size)
+
+    nrows = pad_extended_ftr.shape[0]
+    pad_msg = pad_msg[:nrows, :]
+    pad_added_code = pad_added_code[:nrows, :, :, :]
+    pad_removed_code = pad_removed_code[:nrows, :, :, :]
+    labels = labels[:nrows]
+
+    batches = mini_batches_extended_update(X_ftr=pad_extended_ftr, X_msg=pad_msg, X_added_code=pad_added_code,
+                                           X_removed_code=pad_removed_code, Y=labels,
+                                           mini_batch_size=input_option.batch_size)
     params.cuda = (not params.no_cuda) and torch.cuda.is_available()
     del params.no_cuda
 
     params.filter_sizes = [int(k) for k in params.filter_sizes.split(',')]
     params.save_dir = os.path.join(params.save_dir, datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S'))
     params.vocab_msg, params.vocab_code = len(dict_msg), len(dict_code)
+    params.n_file = pad_added_code.shape[1]
+    params.n_line = pad_added_code.shape[2]
+    params.n_token = pad_added_code.shape[3]
+    print_params(params=params)
     if len(labels.shape) == 1:
         params.class_num = 1
     else:
@@ -69,7 +71,7 @@ def train_model(data, params):
 
     # Device configuration
     params.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    model = PatchNetExtented(args=params)
+    model = DeepJITExtented(args=params)
     if torch.cuda.is_available():
         model = model.cuda()
     running_train(batches=batches, model=model, params=params)
@@ -86,9 +88,11 @@ if __name__ == '__main__':
     # dict_msg: dictionary of commit message
     # dict_code: dictionary of commit code
 
-    with open('./data/linux_bfp.pickle', 'rb') as input:
+    # path_data = './data/jit_openstack.pkl'
+    path_data = './data/jit_qt.pkl'
+    with open(path_data, 'rb') as input:
         data = pickle.load(input)
-    pad_msg, pad_added_code, pad_removed_code, labels, dict_msg, dict_code = data
+    pad_msg, pad_added_code, pad_removed_code, labels, dict_msg, dict_code, _ = data
     ##########################################################################################################
     print(pad_msg.shape, pad_added_code.shape, pad_removed_code.shape, labels.shape)
     print('Shape of the commit message:', pad_msg.shape)
@@ -99,10 +103,14 @@ if __name__ == '__main__':
     input_option = read_args_cnn().parse_args()
     input_help = read_args_cnn().print_help()
 
-    input_option.datetime = '2019-07-08_23-13-28'
+    # input_option.datetime = '2019-08-03_14-40-22'
+    # path_embedding = './embedding/' + input_option.datetime + '/epoch_10.txt'
 
+    input_option.datetime = '2019-08-03_14-45-06'
     path_embedding = './embedding/' + input_option.datetime + '/epoch_10.txt'
+
     embedding_ftr = np.loadtxt(path_embedding)  # be careful with the shape since we don't include the last batch
+    print('Shape of the extended features:', embedding_ftr.shape)
 
     data = (embedding_ftr, pad_msg, pad_added_code, pad_removed_code, labels, dict_msg, dict_code)
     input_option.extended_ftr = embedding_ftr.shape[1]
