@@ -27,10 +27,11 @@ def bfp_clf_results(path, labels=None, algorithm=None, kfold=5):
     embedding = np.loadtxt(path)  # be careful with the shape since we don't include the last batch
     nrows = embedding.shape[0]
     labels = labels[:nrows]
-    # kf = KFold(n_splits=kfold)
     skf = StratifiedKFold(n_splits=kfold)
     print('Algorithm results:', algorithm)
     accs, prcs, rcs, f1s, aucs = list(), list(), list(), list(), list()
+
+
     for train_index, test_index in skf.split(embedding, labels):
         x_train, y_train = embedding[train_index], labels[train_index]
         x_test, y_test = embedding[test_index], labels[test_index]
@@ -56,9 +57,11 @@ def bfp_clf_results(path, labels=None, algorithm=None, kfold=5):
 
 
 if __name__ == '__main__':
-    with open('./data/linux_bfp.pickle', 'rb') as input:
+    # path_data = './data/jit_openstack.pkl'
+    path_data = './data/jit_qt.pkl'
+    with open(path_data, 'rb') as input:
         data = pickle.load(input)
-    pad_msg, pad_added_code, pad_removed_code, labels, dict_msg, dict_code = data
+    pad_msg, pad_added_code, pad_removed_code, labels, dict_msg, dict_code, _ = data
     ##########################################################################################################
     print(pad_msg.shape, pad_added_code.shape, pad_removed_code.shape, labels.shape)
     print('Shape of the commit message:', pad_msg.shape)
@@ -70,30 +73,18 @@ if __name__ == '__main__':
     input_option = read_args().parse_args()
     input_help = read_args().print_help()
 
-    # input_option.datetime = '2019-07-08_23-13-28'
-    # input_option.start_epoch = 1
-    # input_option.end_epoch = 50
-    #
-    # input_option.datetime = '2019-07-12_21-00-10'
-    # input_option.start_epoch = 1
-    # input_option.end_epoch = 20
-    #
-    # input_option.datetime = '2019-07-08_23-11-15'
-    # input_option.start_epoch = 1
-    # input_option.end_epoch = 22
+    # input_option.datetime = '2019-08-03_14-40-22'
+    # input_option.start_epoch = 10
+    # input_option.end_epoch = 10
 
-    # input_option.datetime = '2019-07-08_23-11-15'
-    # input_option.start_epoch = 1
-    # input_option.end_epoch = 100
+    input_option.datetime = '2019-08-03_14-45-06'
+    input_option.start_epoch = 10
+    input_option.end_epoch = 10
 
-    input_option.datetime = '2019-07-21_20-56-53'
-    input_option.start_epoch = 5
-    input_option.end_epoch = 5
-
-    # algorithm, kfold = 'lr', 5
+    algorithm, kfold = 'lr', 2
     # algorithm, kfold = 'svm', 5
-    # algorithm, kfold = 'nb', 5
-    algorithm, kfold = 'dt', 5
+    # algorithm, kfold = 'nb', 1
+    # algorithm, kfold = 'dt', 5
 
     for epoch in range(input_option.start_epoch, input_option.end_epoch + 1):
         path_model = './embedding/' + input_option.datetime + '/epoch_' + str(epoch) + '.txt'

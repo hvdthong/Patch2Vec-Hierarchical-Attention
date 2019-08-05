@@ -75,7 +75,6 @@ if __name__ == '__main__':
     # dict_code: dictionary of commit code
 
     # path_data = './data/jit_openstack.pkl'
-
     path_data = './data/jit_qt.pkl'
     with open(path_data, 'rb') as input:
         data = pickle.load(input)
