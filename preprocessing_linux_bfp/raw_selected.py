@@ -1,6 +1,7 @@
 from ultis import extract_commit
 from ultis import reformat_commit_code
 import pandas as pd
+import pickle
 
 
 def get_commit_id(commit):
@@ -27,10 +28,18 @@ if __name__ == '__main__':
     raw_ftr_id = [id.strip() for id in raw_ftr_id]
 
     interset_id = list(set(commits_id) & set(raw_ftr_id))
-    rows = list()
+    rows, indexes = list(), list()
+
     for id in interset_id:
         row = raw_ftr.loc[raw_ftr[0] == id]
         rows.append(row)
         print(len(rows))
+        indexes.append(commits_id.index(id))
     raw_ftr = pd.concat(rows)
-    raw_ftr.to_csv('../data/bfp_linux_raw_features.csv', header=False, index=False)
+    data = (indexes, raw_ftr)
+    print(len(indexes), len(raw_ftr))
+
+    # raw_ftr.to_csv('../data/bfp_linux_raw_features.csv', header=False, index=False)
+
+    with open('../data/bfp_raw_features.pickle', 'wb') as output:
+        pickle.dump(data, output, pickle.HIGHEST_PROTOCOL)
