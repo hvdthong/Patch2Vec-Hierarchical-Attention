@@ -91,8 +91,8 @@ if __name__ == '__main__':
     # dict_msg: dictionary of commit message
     # dict_code: dictionary of commit code
 
-    # path_data = './data/jit_openstack.pkl'
-    path_data = './data/jit_qt.pkl'
+    path_data = './data/jit_openstack.pkl'
+    # path_data = './data/jit_qt.pkl'
     with open(path_data, 'rb') as input:
         data = pickle.load(input)
     pad_msg, pad_added_code, pad_removed_code, labels, dict_msg, dict_code, _ = data
