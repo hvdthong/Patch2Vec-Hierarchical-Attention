@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+import pickle
 
 
 def replace_value_dataframe(df):
@@ -44,13 +45,41 @@ def load_df_yasu_data(path_data):
 
 def load_yasu_data(project):
     if project == 'openstack':
-        ids, labels, features = list(), list(), list()
         path_data = '../data/jit_defect/yasu_replication_data/' + project + '.STRATA_PER_YEAR.4.all.8.csv'
-        data = load_df_yasu_data(path_data=path_data)
-        return data
+    elif project == 'qt':
+        path_data = '../data/jit_defect/yasu_replication_data/' + project + '.STRATA_PER_YEAR.4.all.10.csv'
+    else:
+        print('Please type the correct name of the project')
+        exit()
+    data = load_df_yasu_data(path_data=path_data)
+    return data
 
 
 if __name__ == '__main__':
-    project = 'openstack'
-    path_file = '../output/' + project
-    data = load_yasu_data(project=project)
+    # project = 'openstack'
+    project = 'qt'
+    rf = load_yasu_data(project=project)
+
+    # path_data = '../data/jit_openstack.pkl'
+    path_data = '../data/jit_qt.pkl'
+    with open(path_data, 'rb') as input:
+        data = pickle.load(input)
+    pad_msg, pad_added_code, pad_removed_code, labels, dict_msg, dict_code, ids = data
+    print(pad_msg.shape, pad_added_code.shape, pad_removed_code.shape, labels.shape)
+    print('Shape of the commit message:', pad_msg.shape)
+    print('Shape of the added/removed code:', (pad_added_code.shape, pad_removed_code.shape))
+    print('Shape of the label of bug fixing patches:', labels.shape)
+    print('Total words in the message dictionary: ', len(dict_msg))
+    print('Total words in the code dictionary: ', len(dict_code))
+    ids = ids[:int(len(ids) / 64) * 64]
+
+    ids_rf, labels_rf, features_rf = rf
+    interset_id = list(set(ids) & set(ids_rf))
+    indexes = [ids.index(id) for id in interset_id]
+    indexes_raw_ftr = [ids_rf.index(id) for id in interset_id]
+    features_rf = features_rf[indexes_raw_ftr]
+    print(len(indexes), features_rf.shape)
+
+    raw_ftr_data = (indexes, features_rf)
+    write_data = open('../data/jit_' + project + '_raw_features_.pkl', 'wb')
+    pickle.dump(raw_ftr_data, write_data)
