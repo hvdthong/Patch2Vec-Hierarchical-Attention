@@ -82,8 +82,8 @@ def folding_data_authordate(pad_msg, pad_code, labels, ids, n_folds):
 
 
 if __name__ == '__main__':
-    # project = 'openstack'
-    project = 'qt'
+    project = 'openstack'
+    # project = 'qt'
     f = open('../data/jit_defect/' + project + '.pkl', 'rb')
     obj = pickle.load(f)
     f.close()

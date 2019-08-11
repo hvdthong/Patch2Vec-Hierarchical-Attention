@@ -11,7 +11,7 @@ def replace_value_dataframe(df):
 
 def get_features(data):
     # return the features of yasu data
-    return data[:, 11:32]
+    return data[:, 4:33]
 
 
 def get_ids(data):
@@ -78,8 +78,9 @@ if __name__ == '__main__':
     indexes = [ids.index(id) for id in interset_id]
     indexes_raw_ftr = [ids_rf.index(id) for id in interset_id]
     features_rf = features_rf[indexes_raw_ftr]
+    labels_rf = labels_rf[indexes_raw_ftr]
     print(len(indexes), features_rf.shape)
 
-    raw_ftr_data = (indexes, features_rf)
+    raw_ftr_data = (indexes, features_rf, labels_rf)
     write_data = open('../data/jit_' + project + '_raw_features_.pkl', 'wb')
     pickle.dump(raw_ftr_data, write_data)
